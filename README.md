@@ -62,12 +62,12 @@ Die Authentifizierung ist quell-IP-basiert (keine Cookies): `GET /` → `POST /`
 Feld `.PASSWORD` → `GET /ghn.html`. Die Phy-Raten werden wie im GUI-JavaScript
 umgerechnet: `Mbit/s = floor(roh × 32 / 1000)`.
 
-## Geräte-Icon (Brands)
+## Geräte-Icon
 
-Damit das Icon in Home Assistant erscheint und die Integration in den HACS-Default-Store
-aufgenommen werden kann, müssen `brands/icon.png` (256×256) und `brands/icon@2x.png`
-(512×512) per PR in [home-assistant/brands](https://github.com/home-assistant/brands)
-unter `custom_integrations/ghn_maxlinear/` eingereicht werden.
+Die Brand-Assets liegen direkt im Repo unter `custom_components/ghn_maxlinear/brand/`
+(`icon.png`, `icon@2x.png`, `logo.png`, `logo@2x.png`). Ab **Home Assistant 2026.3**
+liest HA diese lokalen Bilder automatisch über die Brands-Proxy-API – ein PR an
+home-assistant/brands ist **nicht mehr nötig** (und wird dort nicht mehr akzeptiert).
 
 ## Haftungsausschluss
 
