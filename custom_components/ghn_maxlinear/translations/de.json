@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "G.hn Adapter",
+        "description": "Daten des MaxLinear-G.hn-Adapters. Das Passwort wird vom Gerät auf 20 Zeichen begrenzt.",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "name": "Name (optional)",
+          "password": "Passwort"
+        }
+      },
+      "discovery_confirm": {
+        "title": "G.hn Adapter gefunden",
+        "description": "Adapter {name} ({host}) gefunden. Zum Einrichten bitte das GUI-Passwort eingeben (wird auf 20 Zeichen begrenzt).",
+        "data": {
+          "name": "Name (optional)",
+          "password": "Passwort"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Adapter nicht erreichbar.",
+      "invalid_auth": "Login abgelehnt – Passwort prüfen."
+    },
+    "abort": {
+      "already_configured": "Dieser Adapter ist bereits eingerichtet."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "connectivity": { "name": "Verbindung" }
+    },
+    "sensor": {
+      "speed": { "name": "Verbindungsgeschwindigkeit" },
+      "min_rate": { "name": "Schwächste Verbindung" },
+      "peer_count": { "name": "Verbundene Knoten" },
+      "node_type": { "name": "Knotentyp" }
+    }
+  }
+}

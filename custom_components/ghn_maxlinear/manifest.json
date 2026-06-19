@@ -1,0 +1,15 @@
+{
+  "domain": "ghn_maxlinear",
+  "name": "G.hn Adapter (MaxLinear)",
+  "codeowners": ["@schmitzfabio"],
+  "config_flow": true,
+  "dhcp": [
+    { "macaddress": "00059E*" }
+  ],
+  "documentation": "https://github.com/schmitzfabio/ha-ghn-maxlinear",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/schmitzfabio/ha-ghn-maxlinear/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}
