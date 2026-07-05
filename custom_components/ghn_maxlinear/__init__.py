@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 
 from .coordinator import GhnCoordinator
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
 type GhnConfigEntry = ConfigEntry[GhnCoordinator]
 

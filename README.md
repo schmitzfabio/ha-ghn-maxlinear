@@ -13,9 +13,9 @@ Liest den Status von **MaxLinear-basierten G.hn-Adaptern** (G.hn-over-Coax, oft 
 „MoCA"-/Koax-Netzwerkadapter verkauft, z. B. Zinwell **TGU-21**) lokal über deren
 Web-GUI aus — komplett **ohne Cloud**.
 
-Diese Adapter haben keine API, aber ihre Status-Seite (`ghn.html`) liefert alle Werte.
-Die Integration meldet sich an, parst die Seite und stellt die Verbindungsqualität
-als Sensoren bereit.
+Diese Adapter haben keine API, aber ihre Status-Seiten (`ghn.html` / `device.html`)
+liefern alle Werte. Die Integration meldet sich an, parst die Seiten und stellt
+Verbindungsqualität und Gerätezustand als Sensoren bereit.
 
 ## Funktionen
 
@@ -30,7 +30,14 @@ als Sensoren bereit.
 | `sensor` **Verbindungsgeschwindigkeit** | lokale G.hn-Rate (Mbit/s) |
 | `sensor` **Schwächste Verbindung** | min. Tx/Rx über alle Knoten (Mbit/s); alle Peers als Attribut |
 | `sensor` **Verbundene Knoten** | Anzahl der G.hn-Gegenstellen |
-| `sensor` **Knotentyp** | `DOMAIN_MASTER` / `END_POINT` (+ Domain, Secured, MAC) |
+| `sensor` **Knotentyp** | `DOMAIN_MASTER` / `END_POINT` (+ Domain, Domain-ID, Profil, Secured, MAC) |
+| `sensor` **CPU-Auslastung** | CPU-Last des Adapters (%) · Diagnose |
+| `sensor` **Speicherauslastung** | RAM-Nutzung (%); frei/gesamt in kB als Attribut · Diagnose |
+| `sensor` **Aktiv seit** | Boot-Zeitpunkt (Timestamp) — erkennt unerwartete Neustarts · Diagnose |
+| `button` **Neustart** | löst einen Hardware-Reset (Reboot) aus — **kein** Factory-Reset |
+
+> ℹ️ FW-/HW-Version stehen auf der Geräteseite (aus `device.html`).
+> ⚠️ Ein Neustart des **Domain-Masters** trennt kurzzeitig das gesamte Koax-Backbone.
 
 ## Installation (HACS)
 

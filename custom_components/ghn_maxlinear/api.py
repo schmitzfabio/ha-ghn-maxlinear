@@ -1,15 +1,22 @@
 """Client für die MaxLinear-G.hn-Web-GUI.
 
-Die GUI hat keine API, aber die Seite ``ghn.html`` enthält alle Werte als
-JavaScript-Variablen. Authentifizierung läuft quell-IP-basiert (keine Cookies):
+Die GUI hat keine API, aber die Seiten ``ghn.html`` / ``device.html`` enthalten
+alle Werte als JavaScript-Variablen bzw. in HTML-Elementen mit fester ``id``.
+Authentifizierung läuft quell-IP-basiert (keine Cookies):
 
 1. ``GET  /``            – Login-Seite anfordern
 2. ``POST /``            – Feld ``.PASSWORD`` (ohne ``OK``-Button!), Passwort
                            wird vom Gerät auf 20 Zeichen gekappt
-3. ``GET  /ghn.html``    – Statusseite mit den JS-Variablen parsen
+3. ``GET  /ghn.html``    – Statusseite (Link-Raten, CPU/RAM, DOD, Profil)
+4. ``GET  /device.html`` – Geräteseite (Uptime, FW-/HW-Version)
 
 Umrechnung der Tabellenraten (wie im GUI-JavaScript):
 ``Mbps = floor(roh * 32 / 1000)``.
+
+Ein Neustart läuft über dasselbe Formular-Muster wie der Login: ``POST /`` mit
+``.SYSTEM.GENERAL.HW_RESET=1`` (Formular ``HW_RESET_FORM`` auf ``advanced.html``).
+Das ist ein reiner Reboot – der destruktive Factory-Reset wird bewusst NICHT
+implementiert.
 """
 
 from __future__ import annotations
@@ -44,6 +51,25 @@ _RE_PCMASTR = re.compile(r'var\s+pcmastr\s*=\s*"([^"]*)"')
 _RE_PCPTX = re.compile(r"var\s+pcptx\s*=\s*new\s+Array\(([^)]*)\)")
 _RE_PCPRX = re.compile(r"var\s+pcprx\s*=\s*new\s+Array\(([^)]*)\)")
 
+# System-Statistik + NDIM (stehen ebenfalls auf ghn.html)
+_RE_CPU = re.compile(r'id="system_stats_cpu_usage">\s*(\d+)')
+_RE_MEM_FREE = re.compile(r'id="system_stats_free_memory">\s*(\d+)')
+_RE_MEM_TOTAL = re.compile(r'id="system_stats_total_memory">\s*(\d+)')
+_RE_DOD = re.compile(r'name="NODE\.GENERAL\.DOMAIN_ID"\s+value="([^"]*)"')
+# Laufendes G.hn-Profil: sPhyMode ist eine ID aus dem mode-Array; der Index
+# darin zeigt in das parallele profiles-Array (z. B. "COAX 200 MHz").
+_RE_SPHYMODE = re.compile(r"var\s+sPhyMode\s*=\s*['\"]?(\d+)")
+_RE_MODE_ARR = re.compile(r"var\s+mode\s*=\s*new\s+Array\(([^)]*)\)")
+_RE_PROFILE_ARR = re.compile(r"var\s+profiles\s*=\s*new\s+Array\(([^)]*)\)")
+
+# Geräteseite (device.html)
+_RE_UPTIME = re.compile(r'id="device_sw_uptime">\s*([^<]+?)\s*<')
+_RE_FW = re.compile(r'id="device_sw_version">\s*([^<]+?)\s*<')
+_RE_HW = re.compile(r'id="device_hw_rev">\s*([^<]+?)\s*<')
+_RE_UPTIME_PARTS = re.compile(
+    r"(?:(\d+)\s*days?,\s*)?(\d+)\s*h\s*(\d+)\s*m\s*(\d+)\s*s"
+)
+
 _TIMEOUT = aiohttp.ClientTimeout(total=10)
 
 
@@ -60,6 +86,23 @@ def _parse_int_array(match: re.Match | None) -> list[int]:
         if part.lstrip("-").isdigit():
             out.append(int(part))
     return out
+
+
+def _parse_str_array(match: re.Match | None) -> list[str]:
+    if not match:
+        return []
+    return [x.strip().strip('"').strip("'").strip() for x in match.group(1).split(",")]
+
+
+def _parse_uptime_seconds(text: str | None) -> int | None:
+    """'1 days, 13h 33m 33s' -> Sekunden."""
+    if not text:
+        return None
+    m = _RE_UPTIME_PARTS.search(text)
+    if not m:
+        return None
+    days, hours, mins, secs = (int(g) if g else 0 for g in m.groups())
+    return ((days * 24 + hours) * 60 + mins) * 60 + secs
 
 
 class GhnClient:
@@ -90,7 +133,7 @@ class GhnClient:
             raise GhnConnectionError(f"Login-Request fehlgeschlagen: {err}") from err
 
     async def async_get_data(self) -> dict:
-        """Login + ghn.html holen und parsen."""
+        """Login + ghn.html (+ device.html) holen und parsen."""
         await self._login()
         try:
             resp = await self._session.get(f"{self._base}/ghn.html", timeout=_TIMEOUT)
@@ -103,7 +146,53 @@ class GhnClient:
         if resp.status != 200 or "pcmastr" not in text:
             raise GhnConnectionError(f"Unerwartete Antwort (HTTP {resp.status})")
 
-        return self._parse(text)
+        data = self._parse(text)
+
+        # device.html ist optional – schlägt der Abruf fehl, bleiben Uptime/FW/HW
+        # None, der Rest der Sensoren funktioniert trotzdem weiter.
+        try:
+            dresp = await self._session.get(
+                f"{self._base}/device.html", timeout=_TIMEOUT
+            )
+            if dresp.status == 200:
+                data.update(self._parse_device(await dresp.text()))
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            pass
+
+        return data
+
+    async def async_reboot(self) -> None:
+        """Hardware-Reset (Neustart) auslösen – kein Factory-Reset.
+
+        Nutzt dasselbe quell-IP-Auth-Muster wie der Login. Der Adapter kappt die
+        Antwort beim Neustart oft mittendrin – eine Connection-/Timeout-Ausnahme
+        NACH dem abgesetzten POST gilt daher als Erfolg.
+        """
+        await self._login()
+        try:
+            await self._session.post(
+                f"{self._base}/",
+                data={
+                    ".CSRFTOKEN": "",
+                    ".REDIRECT": "reset.html",
+                    ".SYSTEM.GENERAL.HW_RESET": "1",
+                },
+                timeout=_TIMEOUT,
+            )
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            # Erwartet: das Gerät startet neu und antwortet nicht mehr.
+            pass
+
+    @staticmethod
+    def _parse_device(text: str) -> dict:
+        m_up = _RE_UPTIME.search(text)
+        m_fw = _RE_FW.search(text)
+        m_hw = _RE_HW.search(text)
+        return {
+            "uptime_seconds": _parse_uptime_seconds(m_up.group(1) if m_up else None),
+            "fw_version": m_fw.group(1).strip() if m_fw else None,
+            "hw_version": m_hw.group(1).strip() if m_hw else None,
+        }
 
     @staticmethod
     def _parse(text: str) -> dict:
@@ -141,12 +230,45 @@ class GhnClient:
         m_dom = _RE_DOMAIN.search(text)
         m_sec = _RE_SECURED.search(text)
 
+        # System-Statistik
+        m_cpu = _RE_CPU.search(text)
+        m_free = _RE_MEM_FREE.search(text)
+        m_total = _RE_MEM_TOTAL.search(text)
+        mem_free = int(m_free.group(1)) if m_free else None
+        mem_total = int(m_total.group(1)) if m_total else None
+        mem_used_pct = (
+            round((mem_total - mem_free) / mem_total * 100)
+            if mem_total and mem_free is not None and mem_total > 0
+            else None
+        )
+
+        # NDIM-Domain-ID (DOD)
+        m_dod = _RE_DOD.search(text)
+
+        # Laufendes Profil aus sPhyMode + mode/profiles-Arrays auflösen
+        profile = None
+        m_sphy = _RE_SPHYMODE.search(text)
+        modes = _parse_str_array(_RE_MODE_ARR.search(text))
+        profiles = _parse_str_array(_RE_PROFILE_ARR.search(text))
+        if m_sphy and modes and profiles:
+            sid = m_sphy.group(1)
+            if sid in modes:
+                idx = modes.index(sid)
+                if idx < len(profiles):
+                    profile = profiles[idx]
+
         return {
             "mac": mymac,
             "node_type": m_node.group(1).strip() if m_node else None,
             "domain": m_dom.group(1) if m_dom else None,
+            "domain_id": m_dod.group(1) if m_dod else None,
+            "profile": profile,
             "secured": (m_sec.group(1) == "YES") if m_sec else None,
             "speed_mbps": int(m_speed.group(1)) if m_speed else None,
+            "cpu_pct": int(m_cpu.group(1)) if m_cpu else None,
+            "mem_free_kb": mem_free,
+            "mem_total_kb": mem_total,
+            "mem_used_pct": mem_used_pct,
             "peers": peers,
             "peer_count": len(peers),
             "min_rate_mbps": min(rates) if rates else None,

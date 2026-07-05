@@ -21,8 +21,9 @@ class GhnEntity(CoordinatorEntity[GhnCoordinator]):
         base = entry.unique_id or entry.entry_id
         self._attr_unique_id = f"{base}_{key}"
 
+        data = coordinator.data or {}
         connections = set()
-        mac = (coordinator.data or {}).get("mac")
+        mac = data.get("mac")
         if mac:
             connections.add((CONNECTION_NETWORK_MAC, mac))
 
@@ -32,5 +33,7 @@ class GhnEntity(CoordinatorEntity[GhnCoordinator]):
             name=entry.title,
             manufacturer="MaxLinear",
             model="G.hn Adapter",
+            sw_version=data.get("fw_version"),
+            hw_version=data.get("hw_version"),
             configuration_url=f"http://{entry.data[CONF_HOST]}/",
         )

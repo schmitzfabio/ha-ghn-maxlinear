@@ -31,11 +31,17 @@
     "binary_sensor": {
       "connectivity": { "name": "Connection" }
     },
+    "button": {
+      "reboot": { "name": "Reboot" }
+    },
     "sensor": {
       "speed": { "name": "Connection speed" },
       "min_rate": { "name": "Weakest link" },
       "peer_count": { "name": "Connected nodes" },
-      "node_type": { "name": "Node type" }
+      "node_type": { "name": "Node type" },
+      "cpu": { "name": "CPU usage" },
+      "memory": { "name": "Memory usage" },
+      "uptime": { "name": "Up since" }
     }
   }
 }
