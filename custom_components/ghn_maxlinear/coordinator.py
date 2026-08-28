@@ -20,14 +20,20 @@ _LOGGER = logging.getLogger(__name__)
 class GhnCoordinator(DataUpdateCoordinator[dict]):
     """Pollt einen MaxLinear-G.hn-Adapter."""
 
+    # Wird von super().__init__(config_entry=...) gesetzt; die Annotation
+    # verengt nur den Optional-Typ der Basisklasse.
+    config_entry: ConfigEntry
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=f"{DOMAIN} {entry.data[CONF_HOST]}",
             update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
         )
-        self.entry = entry
+        # Stabile Basis für unique_id und Device-Identifier.
+        self.device_base_id = entry.unique_id or entry.entry_id
         self.client = GhnClient(
             entry.data[CONF_HOST],
             entry.data[CONF_PASSWORD],

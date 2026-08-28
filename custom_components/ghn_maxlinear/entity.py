@@ -17,8 +17,8 @@ class GhnEntity(CoordinatorEntity[GhnCoordinator]):
 
     def __init__(self, coordinator: GhnCoordinator, key: str) -> None:
         super().__init__(coordinator)
-        entry = coordinator.entry
-        base = entry.unique_id or entry.entry_id
+        entry = coordinator.config_entry
+        base = coordinator.device_base_id
         self._attr_unique_id = f"{base}_{key}"
 
         data = coordinator.data or {}
