@@ -35,6 +35,11 @@
       "reauth_successful": "Passwort aktualisiert."
     }
   },
+  "exceptions": {
+    "reboot_failed": {
+      "message": "Neustart des G.hn-Adapters fehlgeschlagen: {error}"
+    }
+  },
   "entity": {
     "binary_sensor": {
       "connectivity": { "name": "Verbindung" }

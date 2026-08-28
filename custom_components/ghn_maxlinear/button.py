@@ -5,9 +5,12 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import GhnConfigEntry
+from .api import GhnError
+from .const import DOMAIN
 from .entity import GhnEntity
 
 
@@ -35,4 +38,11 @@ class GhnRebootButton(GhnEntity, ButtonEntity):
         super().__init__(coordinator, "reboot")
 
     async def async_press(self) -> None:
-        await self.coordinator.client.async_reboot()
+        try:
+            await self.coordinator.client.async_reboot()
+        except GhnError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="reboot_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err

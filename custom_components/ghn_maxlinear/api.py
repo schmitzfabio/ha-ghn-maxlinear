@@ -136,14 +136,19 @@ class GhnClient:
 
         Nutzt dasselbe quell-IP-Auth-Muster wie der Login. Der Adapter kappt die
         Antwort beim Neustart oft mittendrin – eine Connection-/Timeout-Ausnahme
-        NACH dem abgesetzten POST gilt daher als Erfolg.
+        NACH dem abgesetzten POST gilt daher als Erfolg, ein regulärer
+        Fehlerstatus dagegen nicht.
         """
-        await self._login()
+        _, page = await self._get("/")
+        if is_login_page(page):
+            await self._login()
+            _, page = await self._get("/")
+
         try:
-            await self._session.post(
+            resp = await self._session.post(
                 f"{self._base}/",
                 data={
-                    ".CSRFTOKEN": "",
+                    ".CSRFTOKEN": parse_csrf_token(page),
                     ".REDIRECT": "reset.html",
                     ".SYSTEM.GENERAL.HW_RESET": "1",
                 },
@@ -151,4 +156,11 @@ class GhnClient:
             )
         except (aiohttp.ClientError, asyncio.TimeoutError):
             # Erwartet: das Gerät startet neu und antwortet nicht mehr.
-            pass
+            return
+
+        # Ein sauberer Fehlerstatus ist dagegen KEIN Neustart – sonst meldet
+        # der Button Erfolg, obwohl das Gerät den Request abgelehnt hat.
+        if resp.status in (401, 403):
+            raise GhnAuthError("Neustart abgelehnt – nicht angemeldet")
+        if resp.status >= 400:
+            raise GhnConnectionError(f"Neustart abgelehnt (HTTP {resp.status})")

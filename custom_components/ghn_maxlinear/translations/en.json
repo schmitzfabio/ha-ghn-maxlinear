@@ -35,6 +35,11 @@
       "reauth_successful": "Password updated."
     }
   },
+  "exceptions": {
+    "reboot_failed": {
+      "message": "Restarting the G.hn adapter failed: {error}"
+    }
+  },
   "entity": {
     "binary_sensor": {
       "connectivity": { "name": "Connection" }
