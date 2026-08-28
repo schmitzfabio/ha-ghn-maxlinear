@@ -46,7 +46,6 @@ SENSORS: tuple[GhnSensorDescription, ...] = (
         device_class=SensorDeviceClass.DATA_RATE,
         native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:speedometer",
         value_fn=lambda d: d.get("speed_mbps"),
     ),
     GhnSensorDescription(
@@ -55,7 +54,6 @@ SENSORS: tuple[GhnSensorDescription, ...] = (
         device_class=SensorDeviceClass.DATA_RATE,
         native_unit_of_measurement=UnitOfDataRate.MEGABITS_PER_SECOND,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:transmission-tower",
         value_fn=lambda d: d.get("min_rate_mbps"),
         attrs_fn=lambda d: {"peers": d.get("peers", [])},
     ),
@@ -63,14 +61,12 @@ SENSORS: tuple[GhnSensorDescription, ...] = (
         key="peer_count",
         translation_key="peer_count",
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:lan",
         value_fn=lambda d: d.get("peer_count"),
     ),
     GhnSensorDescription(
         key="node_type",
         translation_key="node_type",
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:lan-connect",
         value_fn=lambda d: d.get("node_type"),
         attrs_fn=lambda d: {
             "domain_name": d.get("domain"),
@@ -86,7 +82,6 @@ SENSORS: tuple[GhnSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:cpu-32-bit",
         value_fn=lambda d: d.get("cpu_pct"),
     ),
     GhnSensorDescription(
@@ -95,7 +90,6 @@ SENSORS: tuple[GhnSensorDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:memory",
         value_fn=lambda d: d.get("mem_used_pct"),
         attrs_fn=lambda d: {
             "free_kb": d.get("mem_free_kb"),
@@ -168,7 +162,6 @@ class GhnUptimeSensor(GhnEntity, RestoreSensor):
     _attr_translation_key = "uptime"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_icon = "mdi:clock-start"
 
     def __init__(self, coordinator: GhnCoordinator) -> None:
         super().__init__(coordinator, "uptime")

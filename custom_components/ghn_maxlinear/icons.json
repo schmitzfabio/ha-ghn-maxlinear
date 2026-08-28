@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "button": {
+      "reboot": { "default": "mdi:restart" }
+    },
+    "sensor": {
+      "speed": { "default": "mdi:speedometer" },
+      "min_rate": { "default": "mdi:transmission-tower" },
+      "peer_count": { "default": "mdi:lan" },
+      "node_type": { "default": "mdi:lan-connect" },
+      "cpu": { "default": "mdi:cpu-32-bit" },
+      "memory": { "default": "mdi:memory" },
+      "uptime": { "default": "mdi:clock-start" }
+    }
+  }
+}

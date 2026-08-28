@@ -36,7 +36,6 @@ class GhnRebootButton(GhnEntity, ButtonEntity):
     _attr_translation_key = "reboot"
     _attr_device_class = ButtonDeviceClass.RESTART
     _attr_entity_category = EntityCategory.CONFIG
-    _attr_icon = "mdi:restart"
 
     def __init__(self, coordinator: GhnCoordinator) -> None:
         super().__init__(coordinator, "reboot")
