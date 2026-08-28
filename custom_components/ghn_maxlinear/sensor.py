@@ -116,6 +116,22 @@ class GhnSensor(GhnEntity, SensorEntity):
 
     entity_description: GhnSensorDescription
 
+    # Die Peer-Liste (und die übrigen Zusatzattribute) ändert sich bei jedem
+    # Poll und würde die Recorder-Datenbank mit einem kompletten JSON-Blob pro
+    # Minute füllen, ohne dass die Historie davon profitiert.
+    _unrecorded_attributes = frozenset(
+        {
+            "peers",
+            "free_kb",
+            "total_kb",
+            "domain_name",
+            "domain_id",
+            "profile",
+            "secured",
+            "mac",
+        }
+    )
+
     def __init__(self, coordinator, description: GhnSensorDescription) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
