@@ -17,6 +17,13 @@
           "name": "Name (optional)",
           "password": "Password"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate G.hn adapter",
+        "description": "The password for {host} is no longer accepted. Enter the current GUI password (20 characters max).",
+        "data": {
+          "password": "Password"
+        }
       }
     },
     "error": {
@@ -24,7 +31,8 @@
       "invalid_auth": "Login rejected — check the password."
     },
     "abort": {
-      "already_configured": "This adapter is already configured."
+      "already_configured": "This adapter is already configured.",
+      "reauth_successful": "Password updated."
     }
   },
   "entity": {

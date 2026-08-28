@@ -8,6 +8,7 @@ from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -44,6 +45,10 @@ class GhnCoordinator(DataUpdateCoordinator[dict]):
         try:
             return await self.client.async_get_data()
         except GhnAuthError as err:
-            raise UpdateFailed(f"Authentifizierung fehlgeschlagen: {err}") from err
+            # Kein UpdateFailed: sonst würde HA im Minutentakt weiter ein
+            # falsches Passwort posten, statt den Reauth-Dialog zu zeigen.
+            raise ConfigEntryAuthFailed(
+                f"Authentifizierung fehlgeschlagen: {err}"
+            ) from err
         except GhnConnectionError as err:
             raise UpdateFailed(str(err)) from err

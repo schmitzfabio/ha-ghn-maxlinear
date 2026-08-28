@@ -17,6 +17,13 @@
           "name": "Name (optional)",
           "password": "Passwort"
         }
+      },
+      "reauth_confirm": {
+        "title": "G.hn Adapter neu anmelden",
+        "description": "Das Passwort für {host} wird nicht mehr akzeptiert. Bitte das aktuelle GUI-Passwort eingeben (max. 20 Zeichen).",
+        "data": {
+          "password": "Passwort"
+        }
       }
     },
     "error": {
@@ -24,7 +31,8 @@
       "invalid_auth": "Login abgelehnt – Passwort prüfen."
     },
     "abort": {
-      "already_configured": "Dieser Adapter ist bereits eingerichtet."
+      "already_configured": "Dieser Adapter ist bereits eingerichtet.",
+      "reauth_successful": "Passwort aktualisiert."
     }
   },
   "entity": {
