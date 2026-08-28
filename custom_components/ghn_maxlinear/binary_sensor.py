@@ -10,7 +10,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import GhnConfigEntry
+from .coordinator import GhnCoordinator
 from .entity import GhnEntity
+
+# Alle Werte stammen aus einem gemeinsamen Coordinator-Poll.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -27,7 +31,7 @@ class GhnConnectivity(GhnEntity, BinarySensorEntity):
     _attr_translation_key = "connectivity"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: GhnCoordinator) -> None:
         super().__init__(coordinator, "connectivity")
 
     @property

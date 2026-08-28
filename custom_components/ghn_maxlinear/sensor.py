@@ -19,7 +19,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import GhnConfigEntry
+from .coordinator import GhnCoordinator
 from .entity import GhnEntity
+
+# Alle Werte stammen aus einem gemeinsamen Coordinator-Poll.
+PARALLEL_UPDATES = 0
 
 # Der berechnete Boot-Zeitpunkt (jetzt - Uptime) jittert um ein paar Sekunden pro
 # Poll. Erst ab dieser Abweichung gilt er als "echter" Neustart und wird neu
@@ -133,7 +137,9 @@ class GhnSensor(GhnEntity, SensorEntity):
         }
     )
 
-    def __init__(self, coordinator, description: GhnSensorDescription) -> None:
+    def __init__(
+        self, coordinator: GhnCoordinator, description: GhnSensorDescription
+    ) -> None:
         super().__init__(coordinator, description.key)
         self.entity_description = description
 
@@ -164,7 +170,7 @@ class GhnUptimeSensor(GhnEntity, RestoreSensor):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:clock-start"
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: GhnCoordinator) -> None:
         super().__init__(coordinator, "uptime")
         self._boot_time: datetime | None = None
 

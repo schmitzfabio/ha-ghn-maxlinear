@@ -11,7 +11,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import GhnConfigEntry
 from .api import GhnError
 from .const import DOMAIN
+from .coordinator import GhnCoordinator
 from .entity import GhnEntity
+
+# Alle Werte stammen aus einem gemeinsamen Coordinator-Poll.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -34,7 +38,7 @@ class GhnRebootButton(GhnEntity, ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
     _attr_icon = "mdi:restart"
 
-    def __init__(self, coordinator) -> None:
+    def __init__(self, coordinator: GhnCoordinator) -> None:
         super().__init__(coordinator, "reboot")
 
     async def async_press(self) -> None:
