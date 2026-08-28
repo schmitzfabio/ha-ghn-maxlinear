@@ -2,13 +2,19 @@
 
 Die GUI hat keine API, aber die Seiten ``ghn.html`` / ``device.html`` enthalten
 alle Werte als JavaScript-Variablen bzw. in HTML-Elementen mit fester ``id``.
-Authentifizierung läuft quell-IP-basiert (keine Cookies):
+Authentifizierung läuft quell-IP-basiert (keine Cookies): das Gerät merkt
+sich die eingeloggte Quell-IP, eine einmal aufgebaute Sitzung überdauert
+also viele Abrufe. Deshalb wird pro Poll NICHT neu eingeloggt, sondern nur,
+wenn die Statusseite wieder das Login-Formular liefert:
 
-1. ``GET  /``            – Login-Seite anfordern
-2. ``POST /``            – Feld ``.PASSWORD`` (ohne ``OK``-Button!), Passwort
-                           wird vom Gerät auf 20 Zeichen gekappt
-3. ``GET  /ghn.html``    – Statusseite (Link-Raten, CPU/RAM, DOD, Profil)
-4. ``GET  /device.html`` – Geräteseite (Uptime, FW-/HW-Version)
+1. ``GET  /ghn.html``    – Statusseite (Link-Raten, CPU/RAM, DOD, Profil)
+2. nur falls nötig: ``GET /`` (liefert ``.CSRFTOKEN``) und ``POST /`` mit
+   ``.CSRFTOKEN`` + ``.PASSWORD`` (ohne ``OK``-Button!); das Passwort wird
+   vom Gerät auf 20 Zeichen gekappt. Danach Schritt 1 erneut.
+3. ``GET  /device.html`` – Geräteseite (Uptime, FW-/HW-Version)
+
+Das halbiert die Requests pro Poll und überträgt das Passwort nur noch,
+wenn die Sitzung tatsächlich abgelaufen ist (die GUI kann kein HTTPS).
 
 Umrechnung der Tabellenraten (wie im GUI-JavaScript):
 ``Mbps = floor(roh * 32 / 1000)``.
@@ -42,6 +48,7 @@ class GhnAuthError(GhnError):
     """Login abgelehnt (falsches Passwort)."""
 
 
+_RE_CSRF = re.compile(r'name="\.CSRFTOKEN"\s+value="([^"]*)"')
 _RE_SPEED = re.compile(r"var\s+speed\s*=\s*(\d+)")
 _RE_NODETYPE = re.compile(r'id="ghn_basic_nodetype">\s*([^<]+?)\s*<')
 _RE_DOMAIN = re.compile(r'name="NODE\.GENERAL\.DOMAIN_NAME"\s+value="([^"]*)"')
@@ -71,6 +78,11 @@ _RE_UPTIME_PARTS = re.compile(
 )
 
 _TIMEOUT = aiohttp.ClientTimeout(total=10)
+
+
+def _is_login_page(text: str) -> bool:
+    """Liefert das Gerät statt der angeforderten Seite das Login-Formular?"""
+    return "AUTH_FORM" in text or "password protected" in text.lower()
 
 
 def _to_mbps(raw: int) -> int:
@@ -117,13 +129,25 @@ class GhnClient:
         self._session = session
         self._base = f"http://{self._host}"
 
-    async def _login(self) -> None:
+    async def _get(self, path: str) -> tuple[int, str]:
+        """GET auf den Adapter; Dekodierfehler brechen den Abruf nicht ab."""
         try:
-            await self._session.get(f"{self._base}/", timeout=_TIMEOUT)
-            await self._session.post(
+            resp = await self._session.get(f"{self._base}{path}", timeout=_TIMEOUT)
+            # Die GUI deklariert kein Charset – errors="replace" verhindert,
+            # dass ein einzelnes Fremdbyte den kompletten Poll killt.
+            return resp.status, await resp.text(errors="replace")
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            raise GhnConnectionError(f"GET {path} fehlgeschlagen: {err}") from err
+
+    async def _login(self) -> None:
+        """Sitzung für die eigene Quell-IP aufbauen."""
+        _, page = await self._get("/")
+        m_csrf = _RE_CSRF.search(page)
+        try:
+            resp = await self._session.post(
                 f"{self._base}/",
                 data={
-                    ".CSRFTOKEN": "",
+                    ".CSRFTOKEN": m_csrf.group(1) if m_csrf else "",
                     ".REDIRECT": "/",
                     ".PASSWORD": self._password,
                 },
@@ -132,32 +156,36 @@ class GhnClient:
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             raise GhnConnectionError(f"Login-Request fehlgeschlagen: {err}") from err
 
-    async def async_get_data(self) -> dict:
-        """Login + ghn.html (+ device.html) holen und parsen."""
-        await self._login()
-        try:
-            resp = await self._session.get(f"{self._base}/ghn.html", timeout=_TIMEOUT)
-            text = await resp.text()
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            raise GhnConnectionError(f"Statusabruf fehlgeschlagen: {err}") from err
-
-        if resp.status == 403 or "AUTH_FORM" in text or "password protected" in text.lower():
+        if resp.status in (401, 403):
             raise GhnAuthError("Login abgelehnt – Passwort prüfen")
-        if resp.status != 200 or "pcmastr" not in text:
-            raise GhnConnectionError(f"Unerwartete Antwort (HTTP {resp.status})")
+        if resp.status >= 400:
+            raise GhnConnectionError(f"Login fehlgeschlagen (HTTP {resp.status})")
+
+    async def async_get_data(self) -> dict:
+        """ghn.html (+ device.html) holen und parsen, bei Bedarf vorher Login."""
+        status, text = await self._get("/ghn.html")
+
+        # Sitzung abgelaufen (oder noch keine) -> einloggen und einmal wiederholen.
+        if status in (401, 403) or _is_login_page(text) or "pcmastr" not in text:
+            await self._login()
+            status, text = await self._get("/ghn.html")
+
+        if status in (401, 403) or _is_login_page(text):
+            raise GhnAuthError("Login abgelehnt – Passwort prüfen")
+        if status != 200 or "pcmastr" not in text:
+            raise GhnConnectionError(f"Unerwartete Antwort (HTTP {status})")
 
         data = self._parse(text)
 
         # device.html ist optional – schlägt der Abruf fehl, bleiben Uptime/FW/HW
         # None, der Rest der Sensoren funktioniert trotzdem weiter.
         try:
-            dresp = await self._session.get(
-                f"{self._base}/device.html", timeout=_TIMEOUT
-            )
-            if dresp.status == 200:
-                data.update(self._parse_device(await dresp.text()))
-        except (aiohttp.ClientError, asyncio.TimeoutError):
+            dstatus, dtext = await self._get("/device.html")
+        except GhnConnectionError:
             pass
+        else:
+            if dstatus == 200 and not _is_login_page(dtext):
+                data.update(self._parse_device(dtext))
 
         return data
 
