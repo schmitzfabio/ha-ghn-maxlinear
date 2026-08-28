@@ -7,13 +7,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import (
+    RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfDataRate
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -149,11 +150,13 @@ class GhnSensor(GhnEntity, SensorEntity):
         return self.entity_description.attrs_fn(self.coordinator.data)
 
 
-class GhnUptimeSensor(GhnEntity, SensorEntity):
+class GhnUptimeSensor(GhnEntity, RestoreSensor):
     """Boot-Zeitpunkt des Adapters (jetzt - Uptime), stabilisiert.
 
     Meldet einen Timestamp statt hochzählender Sekunden – so erkennt eine
-    Automation einen unerwarteten Neustart am Sprung des Werts.
+    Automation einen unerwarteten Neustart am Sprung des Werts. Der Wert
+    überlebt HA-Neustarts, sonst würde er dort jedes Mal um den Poll-Jitter
+    springen und einen Geräte-Neustart vortäuschen.
     """
 
     _attr_translation_key = "uptime"
@@ -165,16 +168,31 @@ class GhnUptimeSensor(GhnEntity, SensorEntity):
         super().__init__(coordinator, "uptime")
         self._boot_time: datetime | None = None
 
-    @property
-    def native_value(self) -> datetime | None:
-        data = self.coordinator.data
-        if not data:
-            return self._boot_time
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        restored = await self.async_get_last_sensor_data()
+        if restored is not None and isinstance(restored.native_value, datetime):
+            self._boot_time = restored.native_value
+        # Weicht der frisch berechnete Wert stark ab, hat das Gerät während
+        # der HA-Auszeit tatsächlich neu gestartet – dann gewinnt der neue.
+        self._update_boot_time()
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        self._update_boot_time()
+        super()._handle_coordinator_update()
+
+    @callback
+    def _update_boot_time(self) -> None:
+        data = self.coordinator.data or {}
         secs = data.get("uptime_seconds")
         if secs is None:
-            return self._boot_time
+            return
         boot = dt_util.utcnow() - timedelta(seconds=secs)
         # Nur bei echtem Sprung (Neustart) aktualisieren, sonst alten Wert halten.
         if self._boot_time is None or abs(boot - self._boot_time) > _UPTIME_DRIFT:
             self._boot_time = boot
+
+    @property
+    def native_value(self) -> datetime | None:
         return self._boot_time
