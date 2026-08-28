@@ -3,79 +3,79 @@
     "step": {
       "user": {
         "title": "G.hn Adapter",
-        "description": "Daten des MaxLinear-G.hn-Adapters. Das Passwort wird vom Gerät auf 20 Zeichen begrenzt.",
+        "description": "Details of the MaxLinear G.hn adapter. The device limits the password to 20 characters.",
         "data": {
-          "host": "Host / IP-Adresse",
+          "host": "Host / IP address",
           "name": "Name (optional)",
-          "password": "Passwort"
+          "password": "Password"
         }
       },
       "discovery_confirm": {
-        "title": "G.hn Adapter gefunden",
-        "description": "Adapter {name} ({host}) gefunden. Zum Einrichten bitte das GUI-Passwort eingeben (wird auf 20 Zeichen begrenzt).",
+        "title": "G.hn adapter found",
+        "description": "Found adapter {name} ({host}). Enter the GUI password to set it up (limited to 20 characters).",
         "data": {
           "name": "Name (optional)",
-          "password": "Passwort"
+          "password": "Password"
         }
       },
       "reauth_confirm": {
-        "title": "G.hn Adapter neu anmelden",
-        "description": "Das Passwort für {host} wird nicht mehr akzeptiert. Bitte das aktuelle GUI-Passwort eingeben (max. 20 Zeichen).",
+        "title": "Re-authenticate G.hn adapter",
+        "description": "The password for {host} is no longer accepted. Enter the current GUI password (20 characters max).",
         "data": {
-          "password": "Passwort"
+          "password": "Password"
         }
       },
       "reconfigure": {
-        "title": "G.hn Adapter ändern",
-        "description": "IP-Adresse oder Passwort des Adapters anpassen. Das Passwort wird vom Gerät auf 20 Zeichen begrenzt.",
+        "title": "Change G.hn adapter",
+        "description": "Update the adapter's IP address or password. The device limits the password to 20 characters.",
         "data": {
-          "host": "Host / IP-Adresse",
-          "password": "Passwort"
+          "host": "Host / IP address",
+          "password": "Password"
         }
       }
     },
     "error": {
-      "cannot_connect": "Adapter nicht erreichbar.",
-      "invalid_auth": "Login abgelehnt – Passwort prüfen."
+      "cannot_connect": "Adapter not reachable.",
+      "invalid_auth": "Login rejected — check the password."
     },
     "abort": {
-      "already_configured": "Dieser Adapter ist bereits eingerichtet.",
-      "reauth_successful": "Passwort aktualisiert.",
-      "reconfigure_successful": "Adapter aktualisiert.",
-      "wrong_device": "Unter dieser Adresse antwortet ein anderer Adapter."
+      "already_configured": "This adapter is already configured.",
+      "reauth_successful": "Password updated.",
+      "reconfigure_successful": "Adapter updated.",
+      "wrong_device": "A different adapter answers at this address."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "G.hn Adapter",
-        "description": "Abfrageintervall in Sekunden (15–3600). Kürzere Intervalle belasten die schwache CPU des Adapters.",
+        "description": "Polling interval in seconds (15–3600). Shorter intervals put load on the adapter's weak CPU.",
         "data": {
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Polling interval (seconds)"
         }
       }
     }
   },
   "exceptions": {
     "reboot_failed": {
-      "message": "Neustart des G.hn-Adapters fehlgeschlagen: {error}"
+      "message": "Restarting the G.hn adapter failed: {error}"
     }
   },
   "entity": {
     "binary_sensor": {
-      "connectivity": { "name": "Verbindung" }
+      "connectivity": { "name": "Connection" }
     },
     "button": {
-      "reboot": { "name": "Neustart" }
+      "reboot": { "name": "Reboot" }
     },
     "sensor": {
-      "speed": { "name": "Verbindungsgeschwindigkeit" },
-      "min_rate": { "name": "Schwächste Verbindung" },
-      "peer_count": { "name": "Verbundene Knoten" },
-      "node_type": { "name": "Knotentyp" },
-      "cpu": { "name": "CPU-Auslastung" },
-      "memory": { "name": "Speicherauslastung" },
-      "uptime": { "name": "Aktiv seit" }
+      "speed": { "name": "Connection speed" },
+      "min_rate": { "name": "Weakest link" },
+      "peer_count": { "name": "Connected nodes" },
+      "node_type": { "name": "Node type" },
+      "cpu": { "name": "CPU usage" },
+      "memory": { "name": "Memory usage" },
+      "uptime": { "name": "Up since" }
     }
   }
 }
