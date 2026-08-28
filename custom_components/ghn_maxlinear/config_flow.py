@@ -45,10 +45,16 @@ class GhnConfigFlow(ConfigFlow, domain=DOMAIN):
             except GhnConnectionError:
                 errors["base"] = "cannot_connect"
             else:
-                await self.async_set_unique_id(
-                    data["mac"] or user_input[CONF_HOST]
-                )
-                self._abort_if_unique_id_configured()
+                # MAC identisch normalisieren wie im DHCP-Pfad, sonst legt
+                # dasselbe Gerät je nach Einrichtungsweg zwei Einträge an.
+                if mac := data.get("mac"):
+                    await self.async_set_unique_id(format_mac(mac))
+                    self._abort_if_unique_id_configured()
+                else:
+                    # Ohne MAC keine stabile ID – wenigstens den Host sperren.
+                    self._async_abort_entries_match(
+                        {CONF_HOST: user_input[CONF_HOST]}
+                    )
                 title = (
                     user_input.get(CONF_NAME)
                     or f"G.hn {user_input[CONF_HOST]}"
