@@ -37,6 +37,9 @@ Verbindungsqualität und Gerätezustand als Sensoren bereit.
 | `button` **Neustart** | löst einen Hardware-Reset (Reboot) aus — **kein** Factory-Reset |
 
 > ℹ️ FW-/HW-Version stehen auf der Geräteseite (aus `device.html`).
+> ℹ️ Ist ein Adapter beim HA-Start nicht erreichbar, wird die Integration trotzdem
+> geladen und **Verbindung** meldet `off` — so kann eine Automation auch dann
+> auslösen (bewusste Abweichung vom üblichen „Setup zurückstellen").
 > ⚠️ Ein Neustart des **Domain-Masters** trennt kurzzeitig das gesamte Koax-Backbone.
 
 ## Installation (HACS)
@@ -63,11 +66,37 @@ Verbindungsqualität und Gerätezustand als Sensoren bereit.
 > Längere Passwörter werden vom Gerät abgeschnitten — die Integration kürzt automatisch
 > ebenfalls auf 20 Zeichen, damit der Login funktioniert.
 
+Über **Konfigurieren** am Integrationseintrag lässt sich das **Abfrageintervall**
+(15–3600 s, Standard 60 s) anpassen. Ändert sich IP oder Passwort, gehen
+**Neu konfigurieren** bzw. der automatische **Neu-Anmelden**-Dialog — der Eintrag
+muss dafür nicht gelöscht werden.
+
 ## Wie es funktioniert
 
-Die Authentifizierung ist quell-IP-basiert (keine Cookies): `GET /` → `POST /` mit dem
-Feld `.PASSWORD` → `GET /ghn.html`. Die Phy-Raten werden wie im GUI-JavaScript
-umgerechnet: `Mbit/s = floor(roh × 32 / 1000)`.
+Die Authentifizierung ist quell-IP-basiert (keine Cookies): Das Gerät merkt sich die
+angemeldete Quell-IP, eine Sitzung überdauert also viele Abrufe. Ein Poll holt deshalb
+zuerst `GET /ghn.html` und meldet sich nur dann neu an (`GET /` für den `.CSRFTOKEN`,
+dann `POST /` mit `.PASSWORD`), wenn die Seite wieder das Login-Formular liefert.
+Die Phy-Raten werden wie im GUI-JavaScript umgerechnet: `Mbit/s = floor(roh × 32 / 1000)`.
+
+## Sicherheitshinweise
+
+Beides folgt aus der Firmware der Adapter und lässt sich von der Integration nicht
+beheben — man sollte es aber wissen:
+
+- **Kein HTTPS.** Die GUI spricht nur HTTP, das Passwort geht im Klartext über das
+  Netz. Die Integration überträgt es nur noch beim Sitzungsaufbau statt bei jedem
+  Poll, aber sicher wird es dadurch nicht. G.hn-Adapter gehören nicht in ein
+  Netzsegment mit fremden Geräten.
+- **Quell-IP-Authentifizierung.** Solange die Sitzung des HA-Hosts steht, ist die
+  komplette GUI für **jeden Prozess auf diesem Host** — und für alles, was hinter
+  derselben Quell-IP steht (NAT, Container-Bridge) — ohne Passwort erreichbar,
+  einschliesslich Neustart und Werksreset. Wer HA auf einem Mehrbenutzer-Host
+  betreibt, sollte das einkalkulieren.
+
+> ⚠️ Der **Neustart-Button** ist standardmässig aktiv. Ein Neustart des
+> Domain-Masters trennt kurzzeitig das gesamte Koax-Backbone — wer ihn nicht
+> braucht, deaktiviert die Entität in den Geräteeinstellungen.
 
 ## Geräte-Icon
 
