@@ -35,6 +35,17 @@
       "reauth_successful": "Password updated."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "G.hn Adapter",
+        "description": "Polling interval in seconds (15–3600). Shorter intervals put load on the adapter's weak CPU.",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  },
   "exceptions": {
     "reboot_failed": {
       "message": "Restarting the G.hn adapter failed: {error}"

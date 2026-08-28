@@ -35,6 +35,17 @@
       "reauth_successful": "Passwort aktualisiert."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "G.hn Adapter",
+        "description": "Abfrageintervall in Sekunden (15–3600). Kürzere Intervalle belasten die schwache CPU des Adapters.",
+        "data": {
+          "scan_interval": "Abfrageintervall (Sekunden)"
+        }
+      }
+    }
+  },
   "exceptions": {
     "reboot_failed": {
       "message": "Neustart des G.hn-Adapters fehlgeschlagen: {error}"

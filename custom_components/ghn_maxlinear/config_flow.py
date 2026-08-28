@@ -7,20 +7,41 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PASSWORD
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+)
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
 from .api import GhnAuthError, GhnClient, GhnConnectionError
-from .const import DOMAIN
+from .const import (
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+)
 
 
 class GhnConfigFlow(ConfigFlow, domain=DOMAIN):
     """Einrichtung eines G.hn-Adapters."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> GhnOptionsFlow:
+        return GhnOptionsFlow()
 
     def __init__(self) -> None:
         self._host: str | None = None
@@ -163,3 +184,26 @@ class GhnConfigFlow(ConfigFlow, domain=DOMAIN):
                 "name": self._name or self._host,
             },
         )
+
+
+class GhnOptionsFlow(OptionsFlow):
+    """Poll-Intervall nachträglich anpassen."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_SCAN_INTERVAL, default=current): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

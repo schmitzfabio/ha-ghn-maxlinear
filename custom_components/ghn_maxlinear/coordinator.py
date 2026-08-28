@@ -6,7 +6,7 @@ import logging
 from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PASSWORD
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -31,7 +31,11 @@ class GhnCoordinator(DataUpdateCoordinator[dict]):
             _LOGGER,
             config_entry=entry,
             name=f"{DOMAIN} {entry.data[CONF_HOST]}",
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(
+                seconds=entry.options.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                )
+            ),
         )
         # Stabile Basis für unique_id und Device-Identifier.
         self.device_base_id = entry.unique_id or entry.entry_id
