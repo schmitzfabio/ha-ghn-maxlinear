@@ -24,6 +24,14 @@
         "data": {
           "password": "Passwort"
         }
+      },
+      "reconfigure": {
+        "title": "G.hn Adapter ändern",
+        "description": "IP-Adresse oder Passwort des Adapters anpassen. Das Passwort wird vom Gerät auf 20 Zeichen begrenzt.",
+        "data": {
+          "host": "Host / IP-Adresse",
+          "password": "Passwort"
+        }
       }
     },
     "error": {
@@ -32,7 +40,9 @@
     },
     "abort": {
       "already_configured": "Dieser Adapter ist bereits eingerichtet.",
-      "reauth_successful": "Passwort aktualisiert."
+      "reauth_successful": "Passwort aktualisiert.",
+      "reconfigure_successful": "Adapter aktualisiert.",
+      "wrong_device": "Unter dieser Adresse antwortet ein anderer Adapter."
     }
   },
   "options": {

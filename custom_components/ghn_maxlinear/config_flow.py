@@ -94,6 +94,43 @@ class GhnConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=schema, errors=errors
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Host/Passwort eines bestehenden Eintrags ändern."""
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            try:
+                data = await self._validate(
+                    user_input[CONF_HOST], user_input[CONF_PASSWORD]
+                )
+            except GhnAuthError:
+                errors["base"] = "invalid_auth"
+            except GhnConnectionError:
+                errors["base"] = "cannot_connect"
+            else:
+                # Unter der alten IP darf kein anderes Gerät stehen.
+                if mac := data.get("mac"):
+                    await self.async_set_unique_id(format_mac(mac))
+                    self._abort_if_unique_id_mismatch(reason="wrong_device")
+                return self.async_update_reload_and_abort(
+                    entry, data_updates=user_input
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_HOST, default=entry.data[CONF_HOST]
+                ): str,
+                vol.Required(CONF_PASSWORD): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
+        )
+
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
