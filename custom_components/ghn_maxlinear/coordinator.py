@@ -75,8 +75,12 @@ class GhnCoordinator(DataUpdateCoordinator[dict]):
             return
 
         registry = dr.async_get(self.hass)
-        device = registry.async_get_device(
-            identifiers={(DOMAIN, self.device_base_id)}
+        # Nicht async_get_device(identifiers=...): das ist seit HA 2026.9
+        # deprecated (Identifier sind nicht mehr eindeutig über Config-Entries
+        # hinweg) und fliegt in HA 2027.8 raus. Die Entry-gebundene Variante
+        # ist ohnehin die präzisere – unser Gerät gehört genau zu diesem Entry.
+        device = registry.async_get_device_by_identifier(
+            (DOMAIN, self.device_base_id), self.config_entry.entry_id
         )
         if device is None:
             return
