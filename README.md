@@ -44,8 +44,10 @@ Verbindungsqualität und Gerätezustand als Sensoren bereit.
 
 ## Installation (HACS)
 
-1. HACS → ⋮ → **Benutzerdefinierte Repositories** → URL dieses Repos, Kategorie **Integration**.
-2. „G.hn Adapter (MaxLinear)" installieren.
+Benötigt Home Assistant **2026.8** oder neuer.
+
+1. HACS öffnen und nach „G.hn Adapter (MaxLinear)" suchen (im HACS-Standardkatalog).
+2. Installieren.
 3. **Home Assistant neu starten**.
 4. **Einstellungen → Geräte & Dienste**: entweder erscheinen die Adapter automatisch
    unter *Entdeckt*, oder *Integration hinzufügen* → „G.hn Adapter (MaxLinear)".

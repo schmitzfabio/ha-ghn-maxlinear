@@ -10,7 +10,7 @@ sowie Gerätezustand (CPU, RAM, Uptime, FW-/HW-Version) direkt aus der Web-GUI �
 - Neustart-Button (Hardware-Reset, kein Factory-Reset)
 - Einstellbares Abfrageintervall, Neu-Anmelden und Neu-Konfigurieren
 
-Benötigt Home Assistant **2025.1** oder neuer.
+Benötigt Home Assistant **2026.8** oder neuer.
 
 > ⚠️ Die Web-GUI der Adapter kann kein HTTPS und authentifiziert über die
 > Quell-IP — Details im README unter „Sicherheitshinweise".
