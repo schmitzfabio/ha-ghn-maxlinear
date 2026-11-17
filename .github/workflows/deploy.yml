@@ -1,0 +1,82 @@
+# Einheitlicher Deploy nach der Vorlage der Cockpit-Software (deploy/ausrollen/, Abschnitt „Veröffentlichen statt ausrollen“).
+# Ausrollen heißt hier: Tag v<version> (aus custom_components/*/manifest.json) und GitHub-Release für einen Stand auf main;
+# HACS bietet Nutzern den Release als Update an. Das Cockpit löst den Lauf per workflow_dispatch aus und liest das
+# GitHub-Deployment (Umgebung production). Eine Versionsadresse gibt es nicht (VERSION_URL leer).
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit auf main (leer = aktueller Kopf von main)
+        required: false
+        default: ''
+
+# Nie zwei Deploys zugleich; ein wartender wird vom neueren ersetzt, ein laufender nie abgebrochen
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  deployments: write
+
+env:
+  UMGEBUNG: production
+  # Release statt Live-System: keine Versionsadresse, die Prüfung entfällt
+  VERSION_URL: ''
+  VERSION_FELD: ''
+
+jobs:
+  deploy:
+    # Nur main (öffentliches Repo: GitHub-Runner, kostenlos)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Stand bestimmen
+        id: stand
+        env:
+          WUNSCH: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          SHA="${WUNSCH:-$GITHUB_SHA}"
+          [[ "$SHA" =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::sha ungültig"; exit 1; }
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.stand.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Stand liegt auf main
+        run: |
+          set -euo pipefail
+          git fetch -q origin main
+          git merge-base --is-ancestor HEAD origin/main || { echo "::error::$(git rev-parse --short HEAD) ist nicht auf main"; exit 1; }
+          echo "DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Version und Tag prüfen
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/deploy/release.mjs pruefen
+
+      - name: Deployment melden
+        id: dep
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/deploy/deployment.mjs start
+
+      - name: Ausrollen (Tag und Release)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/deploy/release.mjs anlegen
+
+      - name: Live-Stand prüfen
+        run: node .github/deploy/deployment.mjs pruefen
+
+      - name: Ergebnis melden
+        if: always() && steps.dep.outputs.id
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/deploy/deployment.mjs ende "${{ steps.dep.outputs.id }}" "${{ job.status == 'success' && 'success' || 'failure' }}"
