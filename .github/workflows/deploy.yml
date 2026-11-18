@@ -8,9 +8,12 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: Commit auf main (leer = aktueller Kopf von main)
-        required: false
-        default: ''
+        description: Commit auf main (vom Cockpit gesetzt)
+        required: true
+      nachweis:
+        description: Nachweis der Freigabe aus dem Cockpit (signiert; ohne ihn lehnt der Deploy-Runner den Job ab)
+        required: true
+# Kein push-Auslöser: Der Deploy-Runner nimmt nur Starts mit gültigem Nachweis der Freigabe an (Hook, deploy-runner-einrichten.sh).
 
 # Nie zwei Deploys zugleich; ein wartender wird vom neueren ersetzt, ein laufender nie abgebrochen
 concurrency:
@@ -29,9 +32,9 @@ env:
 
 jobs:
   deploy:
-    # Nur main (öffentliches Repo: GitHub-Runner, kostenlos)
+    # Nur main; der Deploy-Runner prüft zusätzlich selbst Branch, Auslöser und den Nachweis der Freigabe (Hook im Runner)
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ki-rechner-deploy]
     timeout-minutes: 20
     steps:
       - name: Stand bestimmen
@@ -40,8 +43,8 @@ jobs:
           WUNSCH: ${{ inputs.sha }}
         run: |
           set -euo pipefail
-          SHA="${WUNSCH:-$GITHUB_SHA}"
-          [[ "$SHA" =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::sha ungültig"; exit 1; }
+          SHA="$WUNSCH"
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::sha ungültig (voller Commit erwartet)"; exit 1; }
           echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
